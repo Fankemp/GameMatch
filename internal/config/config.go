@@ -32,7 +32,6 @@ func getEnv(key, defaultValue string) string {
 
 func NewPostgreConfig() *PostgreConfig {
 	loadEnv()
-
 	return &PostgreConfig{
 		Host:     getEnv("DB_HOST", "localhost"),
 		Port:     getEnv("DB_PORT", "5432"),

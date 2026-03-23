@@ -9,6 +9,8 @@ import (
 
 	"github.com/Fankemp/GameMatch/internal/config"
 	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres" // Драйвер для работы с Postgres в миграциях
+	_ "github.com/golang-migrate/migrate/v4/source/file"       // Драйвер для чтения файлов миграций
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 )
