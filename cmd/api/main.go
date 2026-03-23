@@ -34,7 +34,5 @@ func main() {
 			return
 		}
 	}
-
-	log.Println("Database connected and ready")
-
+	
 }
