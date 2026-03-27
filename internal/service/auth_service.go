@@ -41,6 +41,7 @@ type LoginInput struct {
 type AuthService interface {
 	Register(ctx context.Context, input RegisterInput) (*model.User, error)
 	Login(ctx context.Context, input LoginInput) (string, error)
+	GetMe(ctx context.Context, userID int64) (*model.User, error)
 }
 
 type authService struct {
@@ -76,6 +77,14 @@ func (s *authService) Register(ctx context.Context, input RegisterInput) (*model
 
 	if err = s.userRepo.Create(ctx, user); err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
+	}
+	return user, nil
+}
+
+func (s *authService) GetMe(ctx context.Context, userID int64) (*model.User, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
 	}
 	return user, nil
 }

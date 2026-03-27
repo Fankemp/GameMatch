@@ -72,7 +72,14 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]int64{"user_id": userID})
+
+	user, err := h.authService.GetMe(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get user")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, user)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
