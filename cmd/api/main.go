@@ -2,10 +2,17 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/Fankemp/GameMatch/internal/config"
 	"github.com/Fankemp/GameMatch/internal/db_conn"
+	"github.com/Fankemp/GameMatch/internal/handler"
+	"github.com/Fankemp/GameMatch/internal/repository"
+	"github.com/Fankemp/GameMatch/internal/service"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -13,8 +20,9 @@ func main() {
 	migrateFlagDown := flag.Bool("migrate-down", false, "rollback last migrations")
 	flag.Parse()
 
-	cfg := config.NewPostgreConfig()
-	db, err := db_conn.NewDB(cfg)
+	cfg := config.NewConfig()
+
+	db, err := db_conn.NewDB(cfg.Postgres)
 	if err != nil {
 		panic(err)
 	}
@@ -30,9 +38,42 @@ func main() {
 
 	if *migrateFlagDown {
 		if err = db.MigrateDown(); err != nil {
-			log.Println("migration cant be rollback")
+			log.Println("migration rollback failed:", err)
 			return
 		}
+		log.Println("migration rolled back successfully")
+		return
 	}
-	
+
+	// Repositories
+	userRepo := repository.NewUserRepository(db.DB)
+
+	// Services
+	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret)
+
+	// Handlers
+	authHandler := handler.NewAuthHandler(authSvc)
+
+	// Router
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	r.Route("/api/v1", func(r chi.Router) {
+		// Public routes
+		r.Post("/auth/register", authHandler.Register)
+		r.Post("/auth/login", authHandler.Login)
+
+		// Protected routes
+		r.Group(func(r chi.Router) {
+			r.Use(handler.JWTMiddleware(cfg.JWT.Secret))
+			r.Get("/auth/me", authHandler.Me)
+		})
+	})
+
+	addr := fmt.Sprintf(":%s", cfg.HTTPPort)
+	log.Printf("server starting on %s", addr)
+	if err = http.ListenAndServe(addr, r); err != nil {
+		log.Fatalln(err)
+	}
 }
