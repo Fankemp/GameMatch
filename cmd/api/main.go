@@ -47,12 +47,15 @@ func main() {
 
 	// Repositories
 	userRepo := repository.NewUserRepository(db.DB)
+	profileRepo := repository.NewProfileRepository(db.DB)
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret)
+	profileSvc := service.NewProfileService(profileRepo)
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authSvc)
+	profileHandler := handler.NewProfileHandler(profileSvc)
 
 	// Router
 	r := chi.NewRouter()
@@ -68,6 +71,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(handler.JWTMiddleware(cfg.JWT.Secret))
 			r.Get("/auth/me", authHandler.Me)
+			r.Post("/profile", profileHandler.CreateProfile)
 		})
 	})
 
