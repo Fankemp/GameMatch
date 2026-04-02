@@ -2,11 +2,7 @@ import { create } from "zustand";
 import { getFeed } from "../api/feed";
 import { swipe } from "../api/swipes";
 import type { FeedCard, FeedFilters, GameID, Match } from "../types";
-// временные моки
-const MOCK_CARDS: FeedCard[] = [
-    { id:1, user_id:10, game_id:"valorant", rank:"Gold", role:"Duelist", description:"Ищу дуо", is_active:true, created_at:"", updated_at:"", username:"AlexFPS", age:23, language:"RU", region:"EU Central", avatar_url:"https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" },
-    { id:2, user_id:11, game_id:"valorant", rank:"Platinum", role:"Controller", description:"Looking for duo", is_active:true, created_at:"", updated_at:"", username:"NightOwl", age:19, language:"EN", region:"EU West", avatar_url:"https://api.dicebear.com/7.x/avataaars/svg?seed=Night" },
-];
+
 
 interface FeedState {
     gameId: GameID;
@@ -44,9 +40,6 @@ export const useFeedStore = create<FeedState>((set, get) => ({
             const { gameId, filters } = get();
             const cards = await getFeed(gameId, filters);
             set({ cards });
-        } catch {
-            // fallback на моки, бэк ис пока анреди
-            set({ cards: MOCK_CARDS });
         } finally {
             set({ isLoading: false });
         }
@@ -59,18 +52,8 @@ export const useFeedStore = create<FeedState>((set, get) => ({
             if (result.matched && result.match) {
                 set({ newMatch: result.match });
             }
-        } catch {
-            // имитация матча для демо тоже пока бэк анреди
-            if (action === "like" && Math.random() < 0.4) {
-                const fakeMatch: Match = {
-                    id: Date.now(),
-                    user_a_id: 0,
-                    user_b_id: card.user_id,
-                    game_id: card.game_id,
-                    created_at: new Date().toISOString(),
-                };
-                set({ newMatch: fakeMatch });
-            }
+        } catch (err) {
+            console.error("Swipe failed", err);
         }
     },
 
