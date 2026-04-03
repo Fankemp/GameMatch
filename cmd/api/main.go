@@ -70,8 +70,15 @@ func main() {
 		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(handler.JWTMiddleware(cfg.JWT.Secret))
+
+			// Auth
 			r.Get("/auth/me", authHandler.Me)
+
+			// Profile
 			r.Post("/profile", profileHandler.CreateProfile)
+			r.Put("/profile", profileHandler.UpdateProfile)
+			r.Get("/profile", profileHandler.GetMyProfile)
+			r.Get("/profiles/{id}", profileHandler.GetProfileByID)
 		})
 	})
 
