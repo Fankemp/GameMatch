@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/Fankemp/GameMatch/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
@@ -16,78 +16,68 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
-func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Register(c *gin.Context) {
 	var input service.RegisterInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	if input.Username == "" || input.Email == "" || input.Password == "" || input.Region == "" || input.Language == "" {
-		writeError(w, http.StatusBadRequest, "username, email, password, region and language are required")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username, email, password, region and language are required"})
 		return
 	}
 
-	user, err := h.authService.Register(r.Context(), input)
+	resp, err := h.authService.Register(c.Request.Context(), input)
 	if err != nil {
 		if errors.Is(err, service.ErrUserAlreadyExists) {
-			writeError(w, http.StatusConflict, "user with this email already exists")
+			c.JSON(http.StatusConflict, gin.H{"error": "user with this email already exists"})
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "failed to register user")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register user"})
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, user)
+	c.JSON(http.StatusCreated, resp)
 }
 
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Login(c *gin.Context) {
 	var input service.LoginInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	if input.Email == "" || input.Password == "" {
-		writeError(w, http.StatusBadRequest, "email and password are required")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email and password are required"})
 		return
 	}
 
-	token, err := h.authService.Login(r.Context(), input)
+	resp, err := h.authService.Login(c.Request.Context(), input)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
-			writeError(w, http.StatusUnauthorized, "invalid email or password")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "failed to login")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to login"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"token": token})
+	c.JSON(http.StatusOK, resp)
 }
 
-func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserID(r)
+func (h *AuthHandler) Me(c *gin.Context) {
+	userID, ok := GetUserID(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	user, err := h.authService.GetMe(r.Context(), userID)
+	user, err := h.authService.GetMe(c.Request.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get user")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, user)
-}
-
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
-}
-
-func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"error": msg})
+	c.JSON(http.StatusOK, user)
 }

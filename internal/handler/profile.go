@@ -1,13 +1,12 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/Fankemp/GameMatch/internal/service"
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 )
 
 type ProfileHandler struct {
@@ -18,95 +17,94 @@ func NewProfileHandler(profileService service.ProfileService) *ProfileHandler {
 	return &ProfileHandler{profileService: profileService}
 }
 
-func (h *ProfileHandler) CreateProfile(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserID(r)
+func (h *ProfileHandler) CreateProfile(c *gin.Context) {
+	userID, ok := GetUserID(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
 	var input service.CreateProfileInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	profile, err := h.profileService.CreateProfile(r.Context(), userID, input)
+	profile, err := h.profileService.CreateProfile(c.Request.Context(), userID, input)
 	if err != nil {
 		if errors.Is(err, service.ErrProfileAlreadyExists) {
-			writeError(w, http.StatusConflict, "profile already exists")
+			c.JSON(http.StatusConflict, gin.H{"error": "profile already exists"})
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "failed to create profile")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create profile"})
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, profile)
+	c.JSON(http.StatusCreated, profile)
 }
 
-func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserID(r)
+func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
+	userID, ok := GetUserID(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
 	var input service.UpdateProfileInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	profile, err := h.profileService.UpdateProfile(r.Context(), userID, input)
+	profile, err := h.profileService.UpdateProfile(c.Request.Context(), userID, input)
 	if err != nil {
 		if errors.Is(err, service.ErrProfileNotFound) {
-			writeError(w, http.StatusNotFound, "profile not found")
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "failed to update profile")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update profile"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, profile)
+	c.JSON(http.StatusOK, profile)
 }
 
-func (h *ProfileHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
-	userID, ok := GetUserID(r)
+func (h *ProfileHandler) GetMyProfile(c *gin.Context) {
+	userID, ok := GetUserID(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	profile, err := h.profileService.GetMyProfile(r.Context(), userID)
+	profile, err := h.profileService.GetMyProfile(c.Request.Context(), userID)
 	if err != nil {
 		if errors.Is(err, service.ErrProfileNotFound) {
-			writeError(w, http.StatusNotFound, "profile not found")
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "failed to get profile")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get profile"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, profile)
+	c.JSON(http.StatusOK, profile)
 }
 
-func (h *ProfileHandler) GetProfileByID(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+func (h *ProfileHandler) GetProfileByID(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid profile id")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile id"})
 		return
 	}
 
-	profile, err := h.profileService.GetProfileByID(r.Context(), id)
+	profile, err := h.profileService.GetProfileByID(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, service.ErrProfileNotFound) {
-			writeError(w, http.StatusNotFound, "profile not found")
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "failed to get profile")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get profile"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, profile)
+	c.JSON(http.StatusOK, profile)
 }

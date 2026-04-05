@@ -13,13 +13,18 @@ import (
 )
 
 var (
-	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrUserAlreadyExists  = errors.New("user already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
 type Claims struct {
 	UserID int64 `json:"user_id"`
 	jwt.RegisteredClaims
+}
+
+type AuthResponse struct {
+	Token string      `json:"token"`
+	User  *model.User `json:"user"`
 }
 
 type RegisterInput struct {
@@ -39,8 +44,8 @@ type LoginInput struct {
 }
 
 type AuthService interface {
-	Register(ctx context.Context, input RegisterInput) (*model.User, error)
-	Login(ctx context.Context, input LoginInput) (string, error)
+	Register(ctx context.Context, input RegisterInput) (*AuthResponse, error)
+	Login(ctx context.Context, input LoginInput) (*AuthResponse, error)
 	GetMe(ctx context.Context, userID int64) (*model.User, error)
 }
 
@@ -53,7 +58,7 @@ func NewAuthService(userRepo repository.UserRepository, jwtSecret string) AuthSe
 	return &authService{userRepo: userRepo, jwtSecret: jwtSecret}
 }
 
-func (s *authService) Register(ctx context.Context, input RegisterInput) (*model.User, error) {
+func (s *authService) Register(ctx context.Context, input RegisterInput) (*AuthResponse, error) {
 	existing, err := s.userRepo.GetByEmail(ctx, input.Email)
 	if err == nil && existing != nil {
 		return nil, ErrUserAlreadyExists
@@ -78,7 +83,31 @@ func (s *authService) Register(ctx context.Context, input RegisterInput) (*model
 	if err = s.userRepo.Create(ctx, user); err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
-	return user, nil
+
+	token, err := s.generateToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{Token: token, User: user}, nil
+}
+
+func (s *authService) Login(ctx context.Context, input LoginInput) (*AuthResponse, error) {
+	user, err := s.userRepo.GetByEmail(ctx, input.Email)
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.Password)); err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	token, err := s.generateToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{Token: token, User: user}, nil
 }
 
 func (s *authService) GetMe(ctx context.Context, userID int64) (*model.User, error) {
@@ -89,24 +118,14 @@ func (s *authService) GetMe(ctx context.Context, userID int64) (*model.User, err
 	return user, nil
 }
 
-func (s *authService) Login(ctx context.Context, input LoginInput) (string, error) {
-	user, err := s.userRepo.GetByEmail(ctx, input.Email)
-	if err != nil {
-		return "", ErrInvalidCredentials
-	}
-
-	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.Password)); err != nil {
-		return "", ErrInvalidCredentials
-	}
-
+func (s *authService) generateToken(userID int64) (string, error) {
 	claims := &Claims{
-		UserID: user.ID,
+		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
