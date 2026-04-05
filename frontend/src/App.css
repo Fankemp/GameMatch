@@ -1,184 +1,105 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+/* ── Loader ── */
+.loader-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.loader-text{font-family:'Rajdhani',sans-serif;font-size:36px;font-weight:700;animation:fadeIn .6s}
+.loader-text span{color:var(--accent)}
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
+/* ── Layout ── */
+.app{min-height:100vh;display:flex;flex-direction:column}
+.main{flex:1;max-width:600px;width:100%;margin:0 auto;padding:24px 16px}
 
-.hero {
-  position: relative;
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+.topbar-logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700}
+.topbar-logo span{color:var(--accent)}
+.topbar-nav{display:flex;gap:4px}
+.topbar-nav button{background:none;border:none;color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;padding:8px 16px;border-radius:8px;cursor:pointer;transition:.15s}
+.topbar-nav button:hover{color:var(--text)}
+.topbar-nav button.active{background:var(--surface2);color:var(--accent)}
+.topbar-user{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2)}
+.logout-btn{background:none;border:1px solid var(--border2);color:var(--text3);font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;transition:.15s}
+.logout-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
+/* ── Game Tabs ── */
+.game-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.game-tab{background:var(--surface);border:1px solid var(--border2);color:var(--text2);padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Barlow Condensed',sans-serif}
+.game-tab:hover{border-color:var(--text3)}
+.game-tab.active{border-color:var(--accent);color:var(--accent);background:rgba(255,70,85,.08)}
 
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
+/* ── Card Stack ── */
+.card-stack{display:flex;justify-content:center;min-height:400px;position:relative}
+.feed-status{align-self:center;color:var(--text3);font-size:15px}
 
-  .framework,
-  .vite {
-    position: absolute;
-  }
+/* ── Swipe Card ── */
+.swipe-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:380px;overflow:hidden;animation:popIn .3s ease}
+.card-header{display:flex;align-items:center;gap:14px;padding:20px 20px 0}
+.card-avatar{width:52px;height:52px;border-radius:50%;border:2px solid var(--border2);object-fit:cover}
+.card-name{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700}
+.card-meta{font-size:13px;color:var(--text3)}
+.card-body{padding:18px 20px}
+.card-rank{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;margin-bottom:4px}
+.card-role{font-size:15px;color:var(--text2);margin-bottom:12px}
+.card-desc{font-size:14px;color:var(--text2);line-height:1.5}
+.card-actions{display:flex;justify-content:center;gap:24px;padding:16px 20px 24px}
+.btn-dislike,.btn-like{width:56px;height:56px;border-radius:50%;border:2px solid var(--border2);background:var(--surface2);font-size:22px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}
+.btn-dislike:hover{border-color:var(--text3);background:rgba(255,255,255,.04)}
+.btn-like:hover{border-color:var(--accent);background:rgba(255,70,85,.1);box-shadow:var(--glow)}
+.btn-like{color:var(--accent)}
 
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
+/* ── Match Overlay ── */
+.match-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;animation:fadeIn .3s}
+.match-popup{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:40px;text-align:center;max-width:340px;animation:popIn .4s ease}
+.match-title{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;color:var(--accent);margin-bottom:8px}
+.match-popup p{color:var(--text2);margin-bottom:20px}
 
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
+/* ── Matches Page ── */
+.page{padding:0}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;margin-bottom:16px}
+.match-card{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:.15s}
+.match-card:hover{border-color:var(--text3)}
+.match-card-av img{width:44px;height:44px;border-radius:50%;object-fit:cover}
+.mc-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px}
+.mc-meta{font-size:13px;color:var(--text3)}
+.mc-time{font-size:12px;color:var(--text3)}
+.discord-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--teal);font-size:12px;padding:4px 10px;border-radius:6px;cursor:pointer;transition:.15s}
+.discord-btn:hover{border-color:var(--teal);box-shadow:var(--glow-teal)}
 
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
+/* ── Profile Page ── */
+.profile-card{display:flex;align-items:center;gap:18px;background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:20px;margin-bottom:20px}
+.profile-avatar img{width:64px;height:64px;border-radius:50%;border:2px solid var(--border2);object-fit:cover}
+.profile-name{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700}
+.profile-meta{font-size:13px;color:var(--text3);margin-top:2px}
+.profile-contact{font-size:13px;color:var(--text2);margin-top:4px}
+.profile-form{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:20px}
+.profile-form .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.profile-form .field label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-family:'Barlow Condensed',sans-serif}
+.profile-form .field input,.profile-form .field textarea{background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;transition:.15s;resize:vertical}
+.profile-form .field input:focus,.profile-form .field textarea:focus{border-color:var(--accent)}
+.profile-msg{text-align:center;margin-top:12px;font-size:13px;color:var(--teal)}
+.profile-msg.err{color:var(--accent)}
 
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
-  width: 100%;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
-
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
-}
+/* ── My Cards Page ── */
+.add-card-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--teal);font-size:13px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;transition:.15s;font-family:'Barlow Condensed',sans-serif}
+.add-card-btn:hover{border-color:var(--teal);box-shadow:var(--glow-teal)}
+.card-form{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:20px;margin-bottom:16px}
+.card-form .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.card-form .field label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-family:'Barlow Condensed',sans-serif}
+.card-form .field input,.card-form .field select,.card-form .field textarea{background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;transition:.15s;resize:vertical}
+.card-form .field input:focus,.card-form .field select:focus,.card-form .field textarea:focus{border-color:var(--accent)}
+.card-form .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.my-cards-list{display:flex;flex-direction:column;gap:10px}
+.my-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:16px;transition:.15s}
+.my-card:hover{border-color:var(--text3)}
+.my-card.inactive{opacity:.5}
+.my-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.my-card-game{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px}
+.my-card-status{font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(255,70,85,.1);color:var(--accent)}
+.my-card-status.active{background:rgba(0,212,170,.1);color:var(--teal)}
+.my-card-body{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+.my-card-rank{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700}
+.my-card-role{font-size:14px;color:var(--text2)}
+.my-card-desc{font-size:13px;color:var(--text3);line-height:1.4;margin-bottom:10px}
+.my-card-actions{display:flex;gap:8px}
+.toggle-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text2);font-size:12px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:.15s}
+.toggle-btn:hover{border-color:var(--teal);color:var(--teal)}
+.delete-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text3);font-size:12px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:.15s}
+.delete-btn:hover{border-color:var(--accent);color:var(--accent)}
