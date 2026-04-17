@@ -18,10 +18,6 @@ type SwipeResult struct {
 	Match   *model.Match `json:"match,omitempty"`
 }
 
-type SwipeService interface {
-	Swipe(ctx context.Context, userID int64, input SwipeInput) (*SwipeResult, error)
-}
-
 type swipeService struct {
 	swipeRepo repository.SwipeRepository
 	cardRepo  repository.CardRepository

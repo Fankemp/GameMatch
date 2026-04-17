@@ -1,4 +1,4 @@
-package handler
+package http
 
 import (
 	"errors"
@@ -13,22 +13,40 @@ type AuthHandler struct {
 }
 
 func NewAuthHandler(authService service.AuthService) *AuthHandler {
-	return &AuthHandler{authService: authService}
+	return &AuthHandler{
+		authService: authService,
+	}
 }
 
-func (h *AuthHandler) Register(c *gin.Context) {
-	var input service.RegisterInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+func (h *AuthHandler) SignUp(c *gin.Context) {
+	var req signUpRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	if input.Username == "" || input.Email == "" || input.Password == "" || input.Region == "" || input.Language == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "username, email, password, region and language are required"})
-		return
+	discord := ""
+	if req.Discord != nil {
+		discord = *req.Discord
 	}
 
-	resp, err := h.authService.Register(c.Request.Context(), input)
+	telegram := ""
+	if req.Telegram != nil {
+		telegram = *req.Telegram
+	}
+
+	input := &service.SignUpInput{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+		Age:      req.Age,
+		Language: req.Language,
+		Discord:  discord,
+		Telegram: telegram,
+		Region:   req.Region,
+	}
+
+	resp, err := h.authService.SignUp(c.Request.Context(), *input)
 	if err != nil {
 		if errors.Is(err, service.ErrUserAlreadyExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": "user with this email already exists"})
@@ -41,19 +59,24 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
-func (h *AuthHandler) Login(c *gin.Context) {
-	var input service.LoginInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+func (h *AuthHandler) SignIn(c *gin.Context) {
+	var req signInRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	if input.Email == "" || input.Password == "" {
+	if req.Email == "" || req.Password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "email and password are required"})
 		return
 	}
 
-	resp, err := h.authService.Login(c.Request.Context(), input)
+	input := service.SignInInput{
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	resp, err := h.authService.SignIn(c.Request.Context(), input)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})

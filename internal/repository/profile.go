@@ -8,13 +8,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type ProfileRepository interface {
-	Create(ctx context.Context, profile *model.Profile) error
-	GetByUserID(ctx context.Context, userID int64) (*model.Profile, error)
-	GetByID(ctx context.Context, id int64) (*model.Profile, error)
-	Update(ctx context.Context, profile *model.Profile) error
-}
-
 type profileRepo struct {
 	db *sqlx.DB
 }

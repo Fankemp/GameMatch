@@ -7,7 +7,7 @@ import (
 
 	"github.com/Fankemp/GameMatch/internal/config"
 	"github.com/Fankemp/GameMatch/internal/db_conn"
-	"github.com/Fankemp/GameMatch/internal/handler"
+	"github.com/Fankemp/GameMatch/internal/delivery/http"
 	"github.com/Fankemp/GameMatch/internal/repository"
 	"github.com/Fankemp/GameMatch/internal/service"
 	"github.com/gin-contrib/cors"
@@ -59,12 +59,12 @@ func main() {
 	swipeSvc := service.NewSwipeService(swipeRepo, cardRepo, matchRepo)
 
 	// Handlers
-	authHandler := handler.NewAuthHandler(authSvc)
-	profileHandler := handler.NewProfileHandler(profileSvc)
-	cardHandler := handler.NewCardHandler(cardSvc)
-	feedHandler := handler.NewFeedHandler(feedSvc)
-	swipeHandler := handler.NewSwipeHandler(swipeSvc)
-	matchHandler := handler.NewMatchHandler(matchRepo)
+	authHandler := http.NewAuthHandler(authSvc)
+	profileHandler := http.NewProfileHandler(profileSvc)
+	cardHandler := http.NewCardHandler(cardSvc)
+	feedHandler := http.NewFeedHandler(feedSvc)
+	swipeHandler := http.NewSwipeHandler(swipeSvc)
+	matchHandler := http.NewMatchHandler(matchRepo)
 
 	// Router
 	r := gin.Default()
@@ -79,12 +79,12 @@ func main() {
 	api := r.Group("/api/v1")
 	{
 		// Public routes
-		api.POST("/auth/register", authHandler.Register)
-		api.POST("/auth/login", authHandler.Login)
+		api.POST("/auth/register", authHandler.SignUp)
+		api.POST("/auth/login", authHandler.SignIn)
 
 		// Protected routes
 		protected := api.Group("")
-		protected.Use(handler.JWTMiddleware(cfg.JWT.Secret))
+		protected.Use(http.JWTMiddleware(cfg.JWT.Secret))
 		{
 			// Auth
 			protected.GET("/auth/me", authHandler.Me)

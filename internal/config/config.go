@@ -46,18 +46,6 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-func NewPostgreConfig() *PostgreConfig {
-	loadEnv()
-	return &PostgreConfig{
-		Host:     getEnv("DB_HOST", "localhost"),
-		Port:     getEnv("DB_PORT", "5432"),
-		Username: getEnv("DB_USER", "gamematch_user"),
-		Password: getEnv("DB_PASSWORD", ""),
-		DBName:   getEnv("DB_NAME", "gamematch_db"),
-		SSLMode:  getEnv("DB_SSLMODE", "disable"),
-	}
-}
-
 func NewConfig() *Config {
 	loadEnv()
 	return &Config{
