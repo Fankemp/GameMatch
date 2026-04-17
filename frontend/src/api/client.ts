@@ -21,7 +21,7 @@ client.interceptors.response.use(
     (err: AxiosError<ApiError>) => {
         if (err.response?.status === 401) {
             localStorage.removeItem("token");
-            window.location.href = "/login";
+            // Don't redirect, let auth store handle it
         }
         return Promise.reject(err);
     }

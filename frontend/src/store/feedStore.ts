@@ -39,7 +39,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         try {
             const { gameId, filters } = get();
             const cards = await getFeed(gameId, filters);
-            set({ cards });
+            set({ cards: cards ?? [] });
+        } catch (err) {
+            console.error("Feed load failed", err);
+            set({ cards: [], error: "Не удалось загрузить ленту" });
         } finally {
             set({ isLoading: false });
         }

@@ -4,15 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 
 	"github.com/Fankemp/GameMatch/internal/config"
 	"github.com/Fankemp/GameMatch/internal/db_conn"
-	"github.com/Fankemp/GameMatch/internal/handler"
+	"github.com/Fankemp/GameMatch/internal/delivery/http"
 	"github.com/Fankemp/GameMatch/internal/repository"
 	"github.com/Fankemp/GameMatch/internal/service"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -48,43 +47,74 @@ func main() {
 	// Repositories
 	userRepo := repository.NewUserRepository(db.DB)
 	profileRepo := repository.NewProfileRepository(db.DB)
+	cardRepo := repository.NewCardRepository(db.DB)
+	swipeRepo := repository.NewSwipeRepository(db.DB)
+	matchRepo := repository.NewMatchRepository(db.DB)
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret)
 	profileSvc := service.NewProfileService(profileRepo)
+	cardSvc := service.NewCardService(cardRepo)
+	feedSvc := service.NewFeedService(cardRepo)
+	swipeSvc := service.NewSwipeService(swipeRepo, cardRepo, matchRepo)
 
 	// Handlers
-	authHandler := handler.NewAuthHandler(authSvc)
-	profileHandler := handler.NewProfileHandler(profileSvc)
+	authHandler := http.NewAuthHandler(authSvc)
+	profileHandler := http.NewProfileHandler(profileSvc)
+	cardHandler := http.NewCardHandler(cardSvc)
+	feedHandler := http.NewFeedHandler(feedSvc)
+	swipeHandler := http.NewSwipeHandler(swipeSvc)
+	matchHandler := http.NewMatchHandler(matchRepo)
 
 	// Router
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r := gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:5174"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
-	r.Route("/api/v1", func(r chi.Router) {
+	api := r.Group("/api/v1")
+	{
 		// Public routes
-		r.Post("/auth/register", authHandler.Register)
-		r.Post("/auth/login", authHandler.Login)
+		api.POST("/auth/register", authHandler.SignUp)
+		api.POST("/auth/login", authHandler.SignIn)
 
 		// Protected routes
-		r.Group(func(r chi.Router) {
-			r.Use(handler.JWTMiddleware(cfg.JWT.Secret))
-
+		protected := api.Group("")
+		protected.Use(http.JWTMiddleware(cfg.JWT.Secret))
+		{
 			// Auth
-			r.Get("/auth/me", authHandler.Me)
+			protected.GET("/auth/me", authHandler.Me)
 
 			// Profile
-			r.Post("/profile", profileHandler.CreateProfile)
-			r.Put("/profile", profileHandler.UpdateProfile)
-			r.Get("/profile", profileHandler.GetMyProfile)
-			r.Get("/profiles/{id}", profileHandler.GetProfileByID)
-		})
-	})
+			protected.POST("/profile", profileHandler.CreateProfile)
+			protected.PUT("/profile", profileHandler.UpdateProfile)
+			protected.GET("/profile", profileHandler.GetMyProfile)
+			protected.GET("/profiles/:id", profileHandler.GetProfileByID)
+
+			// Cards
+			protected.POST("/cards", cardHandler.Create)
+			protected.GET("/cards", cardHandler.GetMyCards)
+			protected.PUT("/cards/:id", cardHandler.Update)
+			protected.DELETE("/cards/:id", cardHandler.Delete)
+
+			// Feed
+			protected.GET("/feed/:game_id", feedHandler.GetFeed)
+
+			// Swipes
+			protected.POST("/swipes", swipeHandler.Swipe)
+
+			// Matches
+			protected.GET("/matches", matchHandler.GetMatches)
+		}
+	}
 
 	addr := fmt.Sprintf(":%s", cfg.HTTPPort)
 	log.Printf("server starting on %s", addr)
-	if err = http.ListenAndServe(addr, r); err != nil {
+	if err = r.Run(addr); err != nil {
 		log.Fatalln(err)
 	}
 }

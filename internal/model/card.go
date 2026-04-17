@@ -13,3 +13,13 @@ type GameCard struct {
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
 }
+
+type FeedCard struct {
+	GameCard
+	Username string `db:"username" json:"username"`
+	Age      int    `db:"age" json:"age"`
+	Language string `db:"language" json:"language"`
+	Region   string `db:"region" json:"region"`
+	Discord  string `db:"discord" json:"discord,omitempty"`
+	Telegram string `db:"telegram" json:"telegram,omitempty"`
+}

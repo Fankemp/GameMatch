@@ -1,6 +1,5 @@
 import { client } from "./client";
-import type { Match } from "../types";
+import type { MatchWithUser } from "../types";
 
-// TODO: бэк пустой
 export const getMatches = () =>
-    client.get<Match[]>("/matches").then((r) => r.data);
+    client.get<MatchWithUser[]>("/matches").then((r) => r.data);
