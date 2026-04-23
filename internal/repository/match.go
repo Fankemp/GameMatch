@@ -8,12 +8,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type MatchRepository interface {
-	Create(ctx context.Context, match *model.Match) error
-	GetByUserID(ctx context.Context, userID int64) ([]*model.MatchWithUser, error)
-	Exists(ctx context.Context, userAID, userBID int64, gameID string) (bool, error)
-}
-
 type matchRepo struct {
 	db *sqlx.DB
 }

@@ -25,13 +25,6 @@ type UpdateCardInput struct {
 	IsActive    *bool  `json:"is_active"`
 }
 
-type CardService interface {
-	Create(ctx context.Context, userID int64, input CreateCardInput) (*model.GameCard, error)
-	GetMyCards(ctx context.Context, userID int64) ([]*model.GameCard, error)
-	Update(ctx context.Context, userID, cardID int64, input UpdateCardInput) (*model.GameCard, error)
-	Delete(ctx context.Context, userID, cardID int64) error
-}
-
 type cardService struct {
 	cardRepo repository.CardRepository
 }

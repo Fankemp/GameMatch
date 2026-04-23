@@ -18,25 +18,24 @@ type SwipeResult struct {
 	Match   *model.Match `json:"match,omitempty"`
 }
 
-type SwipeService interface {
-	Swipe(ctx context.Context, userID int64, input SwipeInput) (*SwipeResult, error)
-}
-
 type swipeService struct {
-	swipeRepo repository.SwipeRepository
-	cardRepo  repository.CardRepository
-	matchRepo repository.MatchRepository
+	swipeRepo    repository.SwipeRepository
+	cardRepo     repository.CardRepository
+	matchRepo    repository.MatchRepository
+	notification NotificationService
 }
 
 func NewSwipeService(
 	swipeRepo repository.SwipeRepository,
 	cardRepo repository.CardRepository,
 	matchRepo repository.MatchRepository,
+	notification NotificationService,
 ) SwipeService {
 	return &swipeService{
-		swipeRepo: swipeRepo,
-		cardRepo:  cardRepo,
-		matchRepo: matchRepo,
+		swipeRepo:    swipeRepo,
+		cardRepo:     cardRepo,
+		matchRepo:    matchRepo,
+		notification: notification,
 	}
 }
 
@@ -104,6 +103,9 @@ func (s *swipeService) Swipe(ctx context.Context, userID int64, input SwipeInput
 	if err := s.matchRepo.Create(ctx, match); err != nil {
 		return nil, fmt.Errorf("create match: %w", err)
 	}
+
+	// Publish match event asynchronously
+	go s.notification.NotifyMatch(ctx, userID, targetCard.UserID, targetCard.GameID)
 
 	return &SwipeResult{Matched: true, Match: match}, nil
 }

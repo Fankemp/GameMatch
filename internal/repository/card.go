@@ -8,15 +8,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type CardRepository interface {
-	Create(ctx context.Context, card *model.GameCard) error
-	GetByID(ctx context.Context, id int64) (*model.GameCard, error)
-	GetByUserID(ctx context.Context, userID int64) ([]*model.GameCard, error)
-	Update(ctx context.Context, card *model.GameCard) error
-	Delete(ctx context.Context, id, userID int64) error
-	GetFeed(ctx context.Context, userID int64, gameID string, limit, offset int) ([]*model.FeedCard, error)
-}
-
 type cardRepo struct {
 	db *sqlx.DB
 }

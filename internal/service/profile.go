@@ -24,13 +24,6 @@ type UpdateProfileInput struct {
 	AvatarURL string `json:"avatar_url"`
 }
 
-type ProfileService interface {
-	CreateProfile(ctx context.Context, userID int64, input CreateProfileInput) (*model.Profile, error)
-	UpdateProfile(ctx context.Context, userID int64, input UpdateProfileInput) (*model.Profile, error)
-	GetMyProfile(ctx context.Context, userID int64) (*model.Profile, error)
-	GetProfileByID(ctx context.Context, id int64) (*model.Profile, error)
-}
-
 type profileService struct {
 	profileRepo repository.ProfileRepository
 }

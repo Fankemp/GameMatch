@@ -8,12 +8,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type SwipeRepository interface {
-	Create(ctx context.Context, swipe *model.Swipe) error
-	Exists(ctx context.Context, userID, targetCardID int64) (bool, error)
-	CheckMutualLike(ctx context.Context, targetUserID, currentUserID int64, gameID string) (bool, error)
-}
-
 type swipeRepo struct {
 	db *sqlx.DB
 }
