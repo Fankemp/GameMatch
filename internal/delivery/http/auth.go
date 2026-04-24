@@ -35,7 +35,7 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 		telegram = *req.Telegram
 	}
 
-	input := &service.SignUpInput{
+	input := service.SignUpInput{
 		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
@@ -46,7 +46,7 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 		Region:   req.Region,
 	}
 
-	resp, err := h.authService.SignUp(c.Request.Context(), *input)
+	resp, err := h.authService.SignUp(c.Request.Context(), input)
 	if err != nil {
 		if errors.Is(err, service.ErrUserAlreadyExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": "user with this email already exists"})
@@ -63,11 +63,6 @@ func (h *AuthHandler) SignIn(c *gin.Context) {
 	var req signInRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
-	}
-
-	if req.Email == "" || req.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "email and password are required"})
 		return
 	}
 
@@ -102,5 +97,10 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, userResponse{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Region:   user.Region,
+	})
 }
