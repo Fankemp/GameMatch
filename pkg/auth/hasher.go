@@ -4,13 +4,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type PasswordHasher struct {
+type BcryptHasher struct {
 	cost int
 }
 
-func (b PasswordHasher) Hash(p string) (string, error) {
+func NewBcryptHasher(cost int) *BcryptHasher {
+	return &BcryptHasher{
+		cost: cost,
+	}
+}
+
+func (b BcryptHasher) Hash(p string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(p), b.cost)
 	return string(hash), err
 }
 
-func (b PasswordHasher) Compare()
+func (b BcryptHasher) Compare(userPassword string, inputPassword string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(userPassword), []byte(inputPassword))
+	return err
+}

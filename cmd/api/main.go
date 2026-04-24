@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Fankemp/GameMatch/internal/config"
 	"github.com/Fankemp/GameMatch/internal/db_conn"
@@ -11,6 +12,7 @@ import (
 	redisclient "github.com/Fankemp/GameMatch/internal/redis"
 	"github.com/Fankemp/GameMatch/internal/repository"
 	"github.com/Fankemp/GameMatch/internal/service"
+	"github.com/Fankemp/GameMatch/pkg/auth"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -62,8 +64,10 @@ func main() {
 	swipeRepo := repository.NewSwipeRepository(db.DB)
 	matchRepo := repository.NewMatchRepository(db.DB)
 
+	hasher := auth.NewBcryptHasher(10)
+	tokenMng := auth.NewManager(cfg.JWT.Secret, 24*time.Hour)
 	// Services
-	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret)
+	authSvc := service.NewAuthService(userRepo, hasher, tokenMng)
 	profileSvc := service.NewProfileService(profileRepo)
 	cardSvc := service.NewCardService(cardRepo)
 	feedSvc := service.NewFeedService(cardRepo, redisClient)
@@ -91,12 +95,12 @@ func main() {
 	api := r.Group("/api/v1")
 	{
 		// Public routes
-		api.POST("/auth/register", authHandler.SignUp)
-		api.POST("/auth/login", authHandler.SignIn)
+		api.POST("/auth/signup", authHandler.SignUp)
+		api.POST("/auth/signin", authHandler.SignIn)
 
 		// Protected routes
 		protected := api.Group("")
-		protected.Use(http.JWTMiddleware(cfg.JWT.Secret))
+		protected.Use(http.JWTMiddleware(tokenMng))
 		{
 			// Auth
 			protected.GET("/auth/me", authHandler.Me)
