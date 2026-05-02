@@ -15,7 +15,7 @@ var (
 
 type PasswordHasher interface {
 	Hash(password string) (string, error)
-	Compare(hash, password string) bool
+	Compare(hash, password string) error
 }
 
 type TokenManager interface {
@@ -24,8 +24,8 @@ type TokenManager interface {
 }
 
 type AuthService interface {
-	SignUp(ctx context.Context, input SignUpInput) (*model.User, error)
-	SignIn(ctx context.Context, input SignInInput) (string, error)
+	SignUp(ctx context.Context, input SignUpInput) (*AuthResponse, error)
+	SignIn(ctx context.Context, input SignInInput) (*AuthResponse, error)
 	GetMe(ctx context.Context, userID int64) (*model.User, error)
 }
 
