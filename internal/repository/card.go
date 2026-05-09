@@ -12,7 +12,7 @@ type cardRepo struct {
 	db *sqlx.DB
 }
 
-func NewCardRepository(db *sqlx.DB) CardRepository {
+func NewCardRepository(db *sqlx.DB) *cardRepo {
 	return &cardRepo{db: db}
 }
 

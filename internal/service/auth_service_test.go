@@ -1,168 +1,239 @@
-package service
+package service_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
-	"github.com/Fankemp/GameMatch/internal/repository/mocks"
+	"github.com/Fankemp/GameMatch/internal/model"
+	"github.com/Fankemp/GameMatch/internal/service"
+	"github.com/Fankemp/GameMatch/internal/service/mocks"
+	"go.uber.org/mock/gomock"
 )
 
-const testJWTSecret = "test-secret-key"
+func TestAuthService_SignUp(t *testing.T) {
+	type mockBehavior func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input service.SignUpInput)
 
-func TestRegister_Success(t *testing.T) {
-	userRepo := mocks.NewUserRepo()
-	svc := NewAuthService(userRepo, testJWTSecret)
+	tests := []struct {
+		name         string
+		input        service.SignUpInput
+		mockBehavior mockBehavior
+		wantErr      error
+	}{
+		{
+			name: "Success",
+			input: service.SignUpInput{
+				Username: "Sarvan",
+				Email:    "musaevsarvan960@gmail.com",
+				Password: "password123",
+			},
+			mockBehavior: func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input service.SignUpInput) {
+				r.EXPECT().GetByEmail(gomock.Any(), input.Email).Return(nil, model.ErrUserNotFound)
 
-	input := RegisterInput{
-		Username: "testuser",
-		Email:    "test@example.com",
-		Password: "password123",
-		Age:      20,
-		Language: "RU",
-		Region:   "CIS",
-	}
+				h.EXPECT().Hash(input.Password).Return("hashed_pw", nil)
 
-	resp, err := svc.Register(context.Background(), input)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+				r.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, u *model.User) error {
+					u.ID = 1
+					return nil
+				})
+
+				tm.EXPECT().NewJWT(int64(1)).Return("token123", nil)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "User already exists",
+			input: service.SignUpInput{
+				Email: "exist@test.com",
+			},
+			mockBehavior: func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input service.SignUpInput) {
+				r.EXPECT().GetByEmail(gomock.Any(), input.Email).Return(&model.User{ID: 1}, nil)
+			},
+			wantErr: service.ErrUserAlreadyExists,
+		},
+		{
+			name:  "Database Error",
+			input: service.SignUpInput{Email: "db_error@test.com"},
+			mockBehavior: func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input service.SignUpInput) {
+				r.EXPECT().GetByEmail(gomock.Any(), input.Email).Return(nil, service.ErrInternalDB)
+			},
+			wantErr: service.ErrInternalDB,
+		},
 	}
-	if resp.Token == "" {
-		t.Fatal("expected token to be non-empty")
-	}
-	if resp.User.Username != "testuser" {
-		t.Fatalf("expected username 'testuser', got '%s'", resp.User.Username)
-	}
-	if resp.User.Email != "test@example.com" {
-		t.Fatalf("expected email 'test@example.com', got '%s'", resp.User.Email)
-	}
-	if resp.User.ID == 0 {
-		t.Fatal("expected user ID to be set")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			r := mocks.NewMockUserRepository(ctrl)
+			h := mocks.NewMockPasswordHasher(ctrl)
+			tm := mocks.NewMockTokenManager(ctrl)
+
+			svc := service.NewAuthService(r, h, tm)
+			tt.mockBehavior(r, h, tm, tt.input)
+			resp, err := svc.SignUp(context.Background(), tt.input)
+
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("expected error: %v, got: %v", tt.wantErr, err)
+			}
+
+			if tt.wantErr == nil {
+				if resp == nil {
+					t.Fatal("expected response, got nil")
+				}
+
+				if resp.Token == "" {
+					t.Error("expected  non empty token")
+				}
+
+				if resp.User.PasswordHash != "" {
+					t.Error("security breach: password hash returned")
+				}
+			}
+
+		})
 	}
 }
 
-func TestRegister_DuplicateEmail(t *testing.T) {
-	userRepo := mocks.NewUserRepo()
-	svc := NewAuthService(userRepo, testJWTSecret)
+func TestAuthService_SignIn(t *testing.T) {
+	type mockBehavior func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input service.SignInInput)
 
-	input := RegisterInput{
-		Username: "user1",
-		Email:    "dup@example.com",
-		Password: "password123",
-		Age:      20,
-		Language: "RU",
-		Region:   "CIS",
+	tests := []struct {
+		name         string
+		input        service.SignInInput
+		mockBehavior mockBehavior
+		wantErr      error
+	}{
+		{
+			name: "Success",
+			input: service.SignInInput{
+				Email:    "success@test.com",
+				Password: "password123",
+			},
+			mockBehavior: func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input service.SignInInput) {
+				userInDB := &model.User{
+					ID:           1,
+					Email:        input.Email,
+					PasswordHash: "any_hash",
+				}
+				r.EXPECT().GetByEmail(gomock.Any(), input.Email).Return(userInDB, nil)
+				h.EXPECT().Compare(userInDB.PasswordHash, input.Password).Return(nil)
+				tm.EXPECT().NewJWT(int64(1)).Return("new_token", nil)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "User not exist",
+			input: service.SignInInput{
+				Email:    "existsuser@test.com",
+				Password: "password123",
+			},
+			mockBehavior: func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input service.SignInInput) {
+				r.EXPECT().GetByEmail(gomock.Any(), input.Email).Return(nil, model.ErrUserNotFound)
+			},
+			wantErr: service.ErrInvalidCredentials,
+		},
+		{
+			name: "Invalid password",
+			input: service.SignInInput{
+				Email:    "test@test.com",
+				Password: "pasword123",
+			},
+			mockBehavior: func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input service.SignInInput) {
+				userInDb := &model.User{
+					ID:           1,
+					PasswordHash: "hash123",
+				}
+
+				r.EXPECT().GetByEmail(gomock.Any(), input.Email).Return(userInDb, nil)
+				h.EXPECT().Compare(userInDb.PasswordHash, input.Password).Return(errors.New("Invalid password"))
+			},
+			wantErr: service.ErrInvalidCredentials,
+		},
 	}
 
-	_, err := svc.Register(context.Background(), input)
-	if err != nil {
-		t.Fatalf("first register failed: %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			r := mocks.NewMockUserRepository(ctrl)
+			h := mocks.NewMockPasswordHasher(ctrl)
+			tm := mocks.NewMockTokenManager(ctrl)
 
-	input.Username = "user2"
-	_, err = svc.Register(context.Background(), input)
-	if err == nil {
-		t.Fatal("expected error for duplicate email, got nil")
-	}
-	if err != ErrUserAlreadyExists {
-		t.Fatalf("expected ErrUserAlreadyExists, got %v", err)
+			svc := service.NewAuthService(r, h, tm)
+			tt.mockBehavior(r, h, tm, tt.input)
+			resp, err := svc.SignIn(context.Background(), tt.input)
+
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("expected error: %v, got: %v", tt.wantErr, err)
+			}
+
+			if tt.wantErr == nil {
+				if resp == nil {
+					t.Fatal("expected response, got nil")
+				}
+
+				if resp.Token == "" {
+					t.Error("expected  non empty token")
+				}
+
+				if resp.User.PasswordHash != "" {
+					t.Error("security breach: password hash returned")
+				}
+			}
+
+		})
 	}
 }
+func TestAuthService_GetMe(t *testing.T) {
+	type mockBehavior func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input int64)
 
-func TestLogin_Success(t *testing.T) {
-	userRepo := mocks.NewUserRepo()
-	svc := NewAuthService(userRepo, testJWTSecret)
+	tests := []struct {
+		name         string
+		input        int64
+		mockBehavior mockBehavior
+		wantErr      error
+	}{
+		{
+			name:  "Success",
+			input: 1,
+			mockBehavior: func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input int64) {
+				r.EXPECT().GetByID(gomock.Any(), input).Return(&model.User{ID: 1}, nil)
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "Not Found",
+			input: 2,
+			mockBehavior: func(r *mocks.MockUserRepository, h *mocks.MockPasswordHasher, tm *mocks.MockTokenManager, input int64) {
+				r.EXPECT().GetByID(gomock.Any(), input).Return(nil, model.ErrUserNotFound)
+			},
+			wantErr: model.ErrUserNotFound,
+		},
+	}
 
-	// Register first
-	regInput := RegisterInput{
-		Username: "logintest",
-		Email:    "login@example.com",
-		Password: "mypassword",
-		Age:      25,
-		Language: "EN",
-		Region:   "EU Central",
-	}
-	_, err := svc.Register(context.Background(), regInput)
-	if err != nil {
-		t.Fatalf("register failed: %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			r := mocks.NewMockUserRepository(ctrl)
+			h := mocks.NewMockPasswordHasher(ctrl)
+			tm := mocks.NewMockTokenManager(ctrl)
 
-	// Login
-	loginInput := LoginInput{
-		Email:    "login@example.com",
-		Password: "mypassword",
-	}
-	resp, err := svc.Login(context.Background(), loginInput)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if resp.Token == "" {
-		t.Fatal("expected token to be non-empty")
-	}
-	if resp.User.Username != "logintest" {
-		t.Fatalf("expected username 'logintest', got '%s'", resp.User.Username)
-	}
-}
-
-func TestLogin_WrongPassword(t *testing.T) {
-	userRepo := mocks.NewUserRepo()
-	svc := NewAuthService(userRepo, testJWTSecret)
-
-	regInput := RegisterInput{
-		Username: "wrongpass",
-		Email:    "wrong@example.com",
-		Password: "correctpassword",
-		Age:      20,
-		Language: "RU",
-		Region:   "CIS",
-	}
-	_, _ = svc.Register(context.Background(), regInput)
-
-	loginInput := LoginInput{
-		Email:    "wrong@example.com",
-		Password: "incorrectpassword",
-	}
-	_, err := svc.Login(context.Background(), loginInput)
-	if err == nil {
-		t.Fatal("expected error for wrong password, got nil")
-	}
-	if err != ErrInvalidCredentials {
-		t.Fatalf("expected ErrInvalidCredentials, got %v", err)
-	}
-}
-
-func TestLogin_NonExistentEmail(t *testing.T) {
-	userRepo := mocks.NewUserRepo()
-	svc := NewAuthService(userRepo, testJWTSecret)
-
-	loginInput := LoginInput{
-		Email:    "noone@example.com",
-		Password: "password",
-	}
-	_, err := svc.Login(context.Background(), loginInput)
-	if err != ErrInvalidCredentials {
-		t.Fatalf("expected ErrInvalidCredentials, got %v", err)
-	}
-}
-
-func TestGetMe_Success(t *testing.T) {
-	userRepo := mocks.NewUserRepo()
-	svc := NewAuthService(userRepo, testJWTSecret)
-
-	regInput := RegisterInput{
-		Username: "meuser",
-		Email:    "me@example.com",
-		Password: "password123",
-		Age:      22,
-		Language: "KZ",
-		Region:   "CIS",
-	}
-	resp, _ := svc.Register(context.Background(), regInput)
-
-	user, err := svc.GetMe(context.Background(), resp.User.ID)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if user.Username != "meuser" {
-		t.Fatalf("expected 'meuser', got '%s'", user.Username)
+			svc := service.NewAuthService(r, h, tm)
+			tt.mockBehavior(r, h, tm, tt.input)
+			resp, err := svc.GetMe(context.Background(), tt.input)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("expected error: %v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr == nil {
+				if resp == nil {
+					t.Fatal("expected response, got nil")
+				}
+				if resp.PasswordHash != "" {
+					t.Error("security breach: password hash returned in GetMe")
+				}
+			}
+		})
 	}
 }

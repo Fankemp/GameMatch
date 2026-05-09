@@ -10,9 +10,10 @@ import (
 var (
 	ErrUserAlreadyExists  = errors.New("user already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrInternal           = errors.New("internal server error")
+	ErrInternalDB         = errors.New("internal server error")
 )
 
+//go:generate mockgen -source=service.go -destination=mocks/service_mocks.go -package=mocks
 type PasswordHasher interface {
 	Hash(password string) (string, error)
 	Compare(hash, password string) error

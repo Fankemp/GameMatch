@@ -34,8 +34,8 @@ CREATE INDEX idx_game_cards_created ON game_cards(created_at DESC);
 
 CREATE TABLE swipes (
     id BIGSERIAL PRIMARY KEY,
-        user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        target_card_id  BIGINT NOT NULL REFERENCES game_cards(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    target_card_id  BIGINT NOT NULL REFERENCES game_cards(id) ON DELETE CASCADE,
     action VARCHAR(10) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

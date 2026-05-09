@@ -61,7 +61,7 @@ func (s *authService) SignUp(ctx context.Context, input SignUpInput) (*AuthRespo
 	if err != nil {
 		return nil, err
 	}
-
+	user.PasswordHash = ""
 	return &AuthResponse{Token: token, User: user}, nil
 }
 
